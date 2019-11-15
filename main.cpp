@@ -12,6 +12,12 @@ std::vector<double> params_x;
 std::vector<double> params_y;
 std::vector<double> params_y_noise;
 std::vector<double> params_y_filtered;
+
+std::vector<double> best_params_y_filtered;
+std::vector<double> best_weights;
+double min_J = 100;
+double best_w = 100;
+double best_d = 100;
 //params
 double x_min = 0;
 double x_max = M_PI;
@@ -46,8 +52,19 @@ double badsignal(double xk){
     double bad = num(generator);
     return signal(xk) + bad;
 }
+double chebishev_noise(){
+    double max_noise = 0;
+    double cur_noise;
+    for(int k = 1; k <= K; k++){
+        cur_noise = fabs(params_y_filtered[k] - params_y_filtered[k-1]);
+        if(cur_noise > max_noise){
+            max_noise = cur_noise;
+        }
+    }
+    return max_noise;
+}
 
-double chebishev(){
+double chebishev_difference(){
     double max_distance = 0;
     double cur_distance;
     for(int k = 0; k <= K; k++){
@@ -57,6 +74,15 @@ double chebishev(){
         }
     }
     return max_distance;
+}
+
+double max_distance(double w, double d){
+    if(w > d){
+        return w;
+    }
+    else if (d > w){
+        return d;
+    }
 }
 
 void harmonic_mean(std::vector<double> weights) {
@@ -120,22 +146,28 @@ std::vector<double> RandomWeights5(){
 }
 
 
-void RandomSearch() {
+void RandomSearch(double l) {
     double N = (log(1-P))/log(1-(eps/(x_max - x_min)));
-    double best_y = 0, best_x = 0;
-    std::uniform_real_distribution<> dist{x_min, x_max};
-    std::vector<double> current_x_storage;
-    for (int i = 0; i < N; i++){
-        current_x_storage.push_back(dist(generator));
-    }
-    for (auto index : current_x_storage) {
-        if (signal(index) > best_y) {
-            best_y = signal(index);
-            best_x = index;
-        }
-    }
+    double J = 0;
+    for(int i = 0; i < N; i++) {
+        std::vector<double> weights = RandomWeights3();
 
-    bestX = best_x; bestY = best_y;
+        harmonic_mean(weights);
+        double w = chebishev_noise();
+        double d = chebishev_difference();
+        J = l*w + (1 - l)*d;
+        if(w < best_w && d < best_d && J < min_J ){
+            best_w = w;
+            min_J=J;
+            best_d = d;
+            best_weights = weights;
+            best_params_y_filtered = params_y_filtered;
+        }
+        //if(J < min_J){
+        //
+        //}
+    }
+    std::cout << best_weights[0] << " " << best_weights[1] << " " << best_weights[2] << "\n\n";
 }
 
 int main() {
@@ -148,9 +180,9 @@ int main() {
         params_y_noise.push_back(badsignal(xk));
         params_y_filtered.push_back(0);
     }
-    std::vector<double> weights = RandomWeights3();
-    std::cout << weights[0] << " " << weights[1] << " " << weights[2] << "\n\n";
-    harmonic_mean(weights);
+    double l = 0;
+    RandomSearch(l);
+
     for (int k = 0; k <= K; k++){
         std::cout << "(" << params_x[k] << ";" << params_y_noise[k] << ")";
     }
