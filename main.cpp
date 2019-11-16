@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <cmath>
 #include <random>
+#include <iomanip>
 static std::mt19937 generator{std::random_device{}()};
 
 std::vector<double> params_x;
@@ -30,6 +31,14 @@ int L = 10;
 int r1 = 3, r2 = 5;
 double eps = 0.01;
 double bestX, bestY;
+
+
+double h_values[11];
+double dis_values[11];
+double weights_3_values[11][3];
+double w_values[11];
+double d_values[11];
+double J_values[11];
 
 double lyamda(int l){
     return l/L;
@@ -145,8 +154,64 @@ std::vector<double> RandomWeights5(){
     return weights;
 }
 
+void PrintResult3() {
+    std::cout << "+-----+--------+-------------------------------+--------+--------+\n"
+              << "|  h  |   dis  |            weights            |    w   |    d   |\n"
+              << "+-----+--------+-------------------------------+--------+--------+\n";
+    for(int i = 0; i < 11; i++){
+        std::cout << "|" << std::fixed <<std::setprecision(1) << std::setw(5)   << h_values[i]
+                  << "|" << std::fixed <<std::setprecision(4) << std::setw(8)   << dis_values[i]
+                  << "|" << std::fixed <<std::setprecision(4) << std::setw(31)  << "[" + std::to_string(weights_3_values[i][0]) +
+                  ", " + std::to_string(weights_3_values[i][1])
+                  + ", " + std::to_string(weights_3_values[i][2]) + "]"
+                  << "|" << std::fixed <<std::setprecision(4) << std::setw(8)   << w_values[i]
+                  << "|" << std::fixed <<std::setprecision(4) << std::setw(8)   << d_values[i]
+                  << "|\n";
+    }
+    std::cout << "+-----+--------+-------------------------------+--------+--------+\n";
 
-void RandomSearch(double l) {
+    size_t best_index= 0;
+    double distance = 1;
+    for (size_t it = 0; it < 11; it++){
+        if(dis_values[it] < distance){
+            distance = dis_values[it];
+            best_index = it;
+        }
+    }
+
+    std::cout << "+-----+---------+--------+--------+\n"
+              << "|  h  |    J    |    w   |    d   |\n"
+              << "+-----+---------+--------+--------+\n";
+
+    std::cout << "|" << std::fixed <<std::setprecision(1) << std::setw(5)   << h_values[best_index]
+    << "|" << std::fixed <<std::setprecision(4) << std::setw(9)   << J_values[best_index]
+    << "|" << std::fixed <<std::setprecision(4) << std::setw(8)   << w_values[best_index]
+    << "|" << std::fixed <<std::setprecision(4) << std::setw(8)   << d_values[best_index]
+    << "|\n";
+
+    std::cout << "+-----+---------+--------+--------+\n";
+
+    std::vector<double> weig;
+    weig.push_back(weights_3_values[best_index][0]);
+    weig.push_back(weights_3_values[best_index][1]);
+    weig.push_back(weights_3_values[best_index][2]);
+
+    harmonic_mean(weig);
+    for (int k = 0; k <= K; k++){
+        std::cout << "(" << params_x[k] << ";" << params_y_noise[k] << ")";
+    }
+    std::cout << "\n\n";
+    for (int k = 0; k <= K; k++){
+        std::cout << "(" << params_x[k] << ";" << params_y_filtered[k] << ")";
+    }
+    std::cout << "\n\n";
+    for (int k = 0; k < 11; k++){
+        std::cout << "(" << w_values[k] << ";" << d_values[k] << ")";
+    }
+
+}
+
+void RandomSearch(double l, int iterator) {
     double N = (log(1-P))/log(1-(eps/(x_max - x_min)));
     double J = 0;
     for(int i = 0; i < N; i++) {
@@ -156,18 +221,37 @@ void RandomSearch(double l) {
         double w = chebishev_noise();
         double d = chebishev_difference();
         J = l*w + (1 - l)*d;
-        if(w < best_w && d < best_d && J < min_J ){
-            best_w = w;
+        if(J < min_J ){
             min_J=J;
+            best_w = w;
             best_d = d;
             best_weights = weights;
             best_params_y_filtered = params_y_filtered;
+
+
         }
-        //if(J < min_J){
-        //
-        //}
     }
-    std::cout << best_weights[0] << " " << best_weights[1] << " " << best_weights[2] << "\n\n";
+    h_values[iterator] = l;
+    dis_values[iterator] = max_distance(best_w, best_d);
+
+    weights_3_values[iterator][0] =  best_weights[0];
+    weights_3_values[iterator][1] =  best_weights[1];
+    weights_3_values[iterator][2] =  best_weights[2];
+
+    w_values[iterator] = best_w;
+    d_values[iterator] = best_d;
+    J_values[iterator] = min_J;
+
+    //std::cout << "l: " << l
+    //<< " dis: " << max_distance(best_w, best_d)
+    //<< "  " << best_weights[0] << " " << best_weights[1] << " " << best_weights[2]
+    //<< " w: " << best_w
+    //<< " d: " << best_d
+    //<< "\n";
+
+    min_J = 100;
+    best_w = 100;
+    best_d = 100;
 }
 
 int main() {
@@ -180,15 +264,22 @@ int main() {
         params_y_noise.push_back(badsignal(xk));
         params_y_filtered.push_back(0);
     }
-    double l = 0;
-    RandomSearch(l);
-
-    for (int k = 0; k <= K; k++){
-        std::cout << "(" << params_x[k] << ";" << params_y_noise[k] << ")";
+    int i = 0;
+    for (double l = 0.0; l <=1; l+= 0.1) {
+        for(int j = 0; j <= K; j++){
+            params_y_filtered[j] = 0;
+        }
+        RandomSearch(l, i);
+        i++;
     }
-    std::cout << "\n\n";
-    for (int k = 0; k <= K; k++){
-        std::cout << "(" << params_x[k] << ";" << params_y_filtered[k] << ")";
-    }
+    i = 0;
+    PrintResult3();
+    //for (int k = 0; k <= K; k++){
+    //    std::cout << "(" << params_x[k] << ";" << params_y_noise[k] << ")";
+    //}
+    //std::cout << "\n\n";
+    //for (int k = 0; k <= K; k++){
+    //    std::cout << "(" << params_x[k] << ";" << params_y_filtered[k] << ")";
+    //}
     return 0;
 }
