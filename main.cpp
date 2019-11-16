@@ -127,16 +127,17 @@ std::vector<double> RandomWeights5(){
 }
 void harmonic_mean(std::vector<double> weights, int M_) {
     if(M_ == 1){
-        params_y_filtered[0] = params_y[0];
-        params_y_filtered[K] = params_y[K];
+        params_y_filtered[0] = params_y_noise[0];
+        params_y_filtered[K] = params_y_noise[K];
     } else{
-        params_y_filtered[0] = params_y[0];
-        params_y_filtered[1] = params_y[K];
-        params_y_filtered[K] = params_y[K];
-        params_y_filtered[K-1] = params_y[K-1];
+        params_y_filtered[0] = params_y_noise[0];
+        params_y_filtered[1] = params_y_noise[1];
+        params_y_filtered[K] = params_y_noise[K];
+        params_y_filtered[K-1] = params_y_noise[K-1];
     }
+    double local_sum = 0;
     for (int k = M_; k <= K - M_; k++){
-        double local_sum = 0;
+        local_sum = 0;
         for(int j = k - M_; j <= k + M_; j++){
             local_sum += weights[j-k+M_] / params_y_noise[j];
         }
@@ -199,7 +200,7 @@ void PrintResult3() {
     }
     std::cout << "\n\n";
     for (int k = 0; k < 11; k++){
-        std::cout << "(" << w_values[k] << ";" << d_values[k] << ")";
+        std::cout << "(" << w_values[k] << "," << d_values[k] << ")";
     }
     std::cout << "\n\n";
 
@@ -261,7 +262,7 @@ void PrintResult5() {
     }
     std::cout << "\n\n";
     for (int k = 0; k < 11; k++) {
-        std::cout << "(" << w_values[k] << ";" << d_values[k] << ")";
+        std::cout << "(" << w_values[k] << "," << d_values[k] << ")";
     }
 }
 void RandomSearch(double l, int iterator, int R) {
@@ -281,7 +282,7 @@ void RandomSearch(double l, int iterator, int R) {
         double w = chebishev_noise();
         double d = chebishev_difference();
         J = l*w + (1 - l)*d;
-        if(J < min_J ){
+        if(J < min_J){
             min_J=J;
             best_w = w;
             best_d = d;
@@ -290,9 +291,6 @@ void RandomSearch(double l, int iterator, int R) {
             } else {
                 best_weights_5 = weights;
             }
-            //best_params_y_filtered = params_y_filtered;
-
-
         }
     }
     h_values[iterator] = l;
@@ -313,14 +311,7 @@ void RandomSearch(double l, int iterator, int R) {
     w_values[iterator] = best_w;
     d_values[iterator] = best_d;
     J_values[iterator] = min_J;
-
-    //std::cout << "l: " << l
-    //<< " dis: " << max_distance(best_w, best_d)
-    //<< "  " << best_weights[0] << " " << best_weights[1] << " " << best_weights[2]
-    //<< " w: " << best_w
-    //<< " d: " << best_d
-    //<< "\n";
-
+    
     min_J = 100;
     best_w = 100;
     best_d = 100;
@@ -329,6 +320,7 @@ void RandomSearch(double l, int iterator, int R) {
 
 int main() {
 
+    srand(time(nullptr));
     double xk;
     for(int j = 0; j <= K; j++){
         best_params_y_filtered.push_back(0);
@@ -361,12 +353,5 @@ int main() {
     j = 0;
     PrintResult5();
 
-    //for (int k = 0; k <= K; k++){
-    //    std::cout << "(" << params_x[k] << ";" << params_y_noise[k] << ")";
-    //}
-    //std::cout << "\n\n";
-    //for (int k = 0; k <= K; k++){
-    //    std::cout << "(" << params_x[k] << ";" << params_y_filtered[k] << ")";
-    //}
     return 0;
 }
