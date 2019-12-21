@@ -105,7 +105,7 @@ std::vector<double> RandomWeights5(){
     weights[1] = mid;
     weights[3] = mid;
 
-    double a_ = 0.5 * (1- weights[2] - weights[1]);
+    double a_ = 0.5 * (1- weights[2] - 2 * weights[1]);
     weights[0] = a_;
     weights[4] = a_;
 
